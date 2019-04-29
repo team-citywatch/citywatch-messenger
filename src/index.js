@@ -1,50 +1,7 @@
 // @flow
 'use strict';
-
-// import { city_watch_issues, image_buttons, yes_no_buttons } from './utils';
-const city_watch_issues = [
-    {
-        "type": "postback",
-        "title": "Pothole",
-        "payload": "pothole",
-    },
-    {
-        "type": "postback",
-        "title": "Violence",
-        "payload": "violence",
-    },
-    {
-        "type": "postback",
-        "title": "Burst sewage pipe",
-        "payload": "sewage",
-    }
-];
-
-const image_buttons = [
-    {
-        "type": "postback",
-        "title": "Yes!",
-        "payload": "upload",
-    },
-    {
-        "type": "postback",
-        "title": "No!",
-        "payload": "no_image",
-    }
-];
-
-const yes_no_buttons = [
-    {
-        "type": "postback",
-        "title": "Yes!",
-        "payload": "yes_image",
-    },
-    {
-        "type": "postback",
-        "title": "No!",
-        "payload": "no",
-    }
-];
+const utils = require("./utils");
+require("dotenv").config();
 
 // Imports dependencies and set up http server
 const
@@ -112,7 +69,7 @@ function handleMessage(sender_psid, received_message) {
                     "elements": [{
                         "title": `Let's start:\nWhat do you want to report?`,
                         "subtitle": "Tap a button to answer.",
-                        "buttons": city_watch_issues,
+                        "buttons": utils.city_watch_issues,
                     }]
                 }
             }
@@ -137,7 +94,7 @@ function handleMessage(sender_psid, received_message) {
                         "title": "Is this the right picture?",
                         "subtitle": "Tap a button to answer.",
                         "image_url": attachment_url,
-                        "buttons": yes_no_buttons,
+                        "buttons": utils.yes_no_buttons,
                     }]
                 }
             }
@@ -182,7 +139,7 @@ function handlePostback(sender_psid, received_postback) {
                     "elements": [{
                         "title": "Terrible! Do you have a picture for this?",
                         "subtitle": "Tap a button to answer.",
-                        "buttons": image_buttons,
+                        "buttons": utils.image_buttons,
                     }]
                 }
             }
@@ -229,7 +186,7 @@ function image_message(payload) {
 
 function city_watch_issues_elements() {
     var elements = []
-    for (let [key, value] of Object.entries(Object.values(city_watch_issues))) {
+    for (let [key, value] of Object.entries(Object.values(utils.city_watch_issues))) {
         elements.push(value.payload)
     }
     return elements
