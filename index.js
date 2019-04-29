@@ -1,14 +1,58 @@
+// @flow
 'use strict';
+
+// import { city_watch_issues, image_buttons, yes_no_buttons } from './utils';
+const city_watch_issues = [
+    {
+        "type": "postback",
+        "title": "Pothole",
+        "payload": "pothole",
+    },
+    {
+        "type": "postback",
+        "title": "Violence",
+        "payload": "violence",
+    },
+    {
+        "type": "postback",
+        "title": "Burst sewage pipe",
+        "payload": "sewage",
+    }
+];
+
+const image_buttons = [
+    {
+        "type": "postback",
+        "title": "Yes!",
+        "payload": "upload",
+    },
+    {
+        "type": "postback",
+        "title": "No!",
+        "payload": "no_image",
+    }
+];
+
+const yes_no_buttons = [
+    {
+        "type": "postback",
+        "title": "Yes!",
+        "payload": "yes_image",
+    },
+    {
+        "type": "postback",
+        "title": "No!",
+        "payload": "no",
+    }
+];
 
 // Imports dependencies and set up http server
 const
     express = require('express'),
     bodyParser = require('body-parser'),
-    app = express().use(bodyParser.json()); // creates express http server
-
-const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
-
-const request = require('request');
+    app = express().use(bodyParser.json()), // creates express http server
+    PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN,
+    request = require('request');
 
 // Sets server port and logs message on success
 app.listen(process.env.PORT || 3000, () => console.log('Webhook is listening'));
@@ -51,18 +95,35 @@ app.post('/webhook', (req, res) => {
 
 });
 
+
 function handleMessage(sender_psid, received_message) {
 
     let response;
 
+    // console.log(received_message)
+
     // Check if the message contains text
-    if (received_message.text) {
+    if (received_message.text == "Start" || received_message.text == "start") {
+        response = {
+            "attachment": {
+                "type": "template",
+                "payload": {
+                    "template_type": "generic",
+                    "elements": [{
+                        "title": `Let's start:\nWhat do you want to report?`,
+                        "subtitle": "Tap a button to answer.",
+                        "buttons": city_watch_issues,
+                    }]
+                }
+            }
+        }
+    } else if (received_message.text) {
 
         // Create the payload for a basic text message
         response = {
             "text": `You sent the message: "${received_message.text}". Now send me an image!`
         }
-    } else if (received_message.attachments) {
+    } else if (received_message.attachments[0].type == 'image') {
 
         // Gets the URL of the message attachment
         let attachment_url = received_message.attachments[0].payload.url;
@@ -76,27 +137,21 @@ function handleMessage(sender_psid, received_message) {
                         "title": "Is this the right picture?",
                         "subtitle": "Tap a button to answer.",
                         "image_url": attachment_url,
-                        "buttons": [
-                            {
-                                "type": "postback",
-                                "title": "Yes!",
-                                "payload": "yes",
-                            },
-                            {
-                                "type": "postback",
-                                "title": "No!",
-                                "payload": "no",
-                            }
-                        ],
+                        "buttons": yes_no_buttons,
                     }]
                 }
             }
         }
+    } else if (received_message.attachments[0].type == 'location') {
+        response = { "text": "We're done here. Thanks!" }
+
+        // Check if there's something similar in that location
     }
 
     // Sends the response message
     callSendAPI(sender_psid, response);
 }
+
 
 function handlePostback(sender_psid, received_postback) {
     let response;
@@ -107,12 +162,38 @@ function handlePostback(sender_psid, received_postback) {
     // Set the response based on the postback payload
     if (payload === 'yes') {
         response = { "text": "Thanks!" }
+    } else if (payload === 'upload') {
+        response = { "text": "Please upload the image" }
+    } else if (payload === 'no_image' || payload === 'yes_image') {
+        response = {
+            "text": image_message(payload),
+            "quick_replies": [
+                {
+                    "content_type": "location"
+                }
+            ]
+        }
+    } else if (city_watch_issues_elements().includes(payload)) {
+        response = {
+            "attachment": {
+                "type": "template",
+                "payload": {
+                    "template_type": "generic",
+                    "elements": [{
+                        "title": "Terrible! Do you have a picture for this?",
+                        "subtitle": "Tap a button to answer.",
+                        "buttons": image_buttons,
+                    }]
+                }
+            }
+        }
     } else if (payload === 'no') {
-        response = { "text": "Oops, try sending another image." }
+        response = { "text": "Oops, try uploading another image" }
     }
     // Send the message to acknowledge the postback
     callSendAPI(sender_psid, response);
 }
+
 
 function callSendAPI(sender_psid, response) {
     // Construct the message body
@@ -138,6 +219,21 @@ function callSendAPI(sender_psid, response) {
     });
 }
 
+function image_message(payload) {
+    if (payload === 'no_image') {
+        return "No problem. Where is this issue?"
+    } else {
+        return "Great! Thanks. Where is this issue?"
+    }
+}
+
+function city_watch_issues_elements() {
+    var elements = []
+    for (let [key, value] of Object.entries(Object.values(city_watch_issues))) {
+        elements.push(value.payload)
+    }
+    return elements
+}
 
 
 // Adds support for GET requests to our webhook
