@@ -52,6 +52,11 @@ app.post('/webhook', (req, res) => {
 
 });
 
+const start_response = {
+    "text": `Let's start:\nWhat do you want to report?`,
+    "quick_replies": utils.city_watch_issues
+}
+
 
 function handleMessage(sender_psid, received_message) {
 
@@ -60,25 +65,27 @@ function handleMessage(sender_psid, received_message) {
     // console.log(received_message)
 
     // Check if the message contains text
-    if (received_message.text == "Start" || received_message.text == "start") {
+    console.log(received_message.text)
+    if (received_message.text && received_message.text.toLowerCase() == "start") {
+        response = start_response
+    } else if (received_message.text && elements(utils.city_watch_issues).includes(received_message.text.toLowerCase())) {
         response = {
             "attachment": {
                 "type": "template",
                 "payload": {
                     "template_type": "generic",
                     "elements": [{
-                        "title": `Let's start:\nWhat do you want to report?`,
-                        "subtitle": "Tap a button to answer.",
-                        "buttons": utils.city_watch_issues,
+                        "title": "Ok! Does it fall under these issues?",
+                        "subtitle": "If not, type one word for the specific category",
+                        "buttons": issues(received_message.text.toLowerCase())
                     }]
                 }
             }
         }
     } else if (received_message.text) {
-
         // Create the payload for a basic text message
         response = {
-            "text": `You sent the message: "${received_message.text}". Now send me an image!`
+            "text": `You selected the issue: "${received_message.text}". Now send me an image!`
         }
     } else if (received_message.attachments[0].type == 'image') {
 
@@ -119,18 +126,11 @@ function handlePostback(sender_psid, received_postback) {
     // Set the response based on the postback payload
     if (payload === 'yes') {
         response = { "text": "Thanks!" }
+    } else if (payload === 'getting_started') {
+        response = start_response
     } else if (payload === 'upload') {
         response = { "text": "Please upload the image" }
-    } else if (payload === 'no_image' || payload === 'yes_image') {
-        response = {
-            "text": image_message(payload),
-            "quick_replies": [
-                {
-                    "content_type": "location"
-                }
-            ]
-        }
-    } else if (city_watch_issues_elements().includes(payload)) {
+    } else if (issues('all').includes(payload)) {
         response = {
             "attachment": {
                 "type": "template",
@@ -139,10 +139,19 @@ function handlePostback(sender_psid, received_postback) {
                     "elements": [{
                         "title": "Terrible! Do you have a picture for this?",
                         "subtitle": "Tap a button to answer.",
-                        "buttons": utils.image_buttons,
+                        "buttons": utils.image_buttons
                     }]
                 }
             }
+        }
+    } else if (payload === 'no_image' || payload === 'yes_image') {
+        response = {
+            "text": image_message(payload),
+            "quick_replies": [
+                {
+                    "content_type": "location"
+                }
+            ]
         }
     } else if (payload === 'no') {
         response = { "text": "Oops, try uploading another image" }
@@ -184,9 +193,25 @@ function image_message(payload) {
     }
 }
 
-function city_watch_issues_elements() {
+function issues(category) {
+    if (category == 'transportation') {
+        return utils.transport_issues
+    } else if (category == 'public safety') {
+        return utils.public_safety_issues
+    } else if (category == 'services') {
+        return utils.services_issues
+    } else if (category == 'environment') {
+        return utils.environment_issues
+    } else if (category == 'all') {
+        return elements(utils.environment_issues).concat(elements(utils.services_issues)).concat(elements(utils.public_safety_issues)).concat(elements(utils.public_safety_issues))
+    } else {
+        return null
+    }
+}
+
+function elements(issues) {
     var elements = []
-    for (let [key, value] of Object.entries(Object.values(utils.city_watch_issues))) {
+    for (let [key, value] of Object.entries(Object.values(issues))) {
         elements.push(value.payload)
     }
     return elements
